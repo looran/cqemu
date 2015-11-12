@@ -12,7 +12,7 @@ set -e
 
 usageexit() {
 	cat <<-_EOF
-	usage: $PROG [-ph] (new|start) vm-name [options]
+	usage: $PROG [-ph] (new|start|show|rm|ls) [vm-name] [options]
 	    -p : pretend, only print commands and do not execute anything
 	    -h : this help
 
