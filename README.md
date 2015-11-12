@@ -33,6 +33,12 @@ Examples:
     cqemu start myvm -cdrom /data/mycd.iso
 ```
 
+### Dependencies
+
+* spicy (spice-gtk package) : spice client used by default, can be changed in ~/.cqemu/cqemurc
+* qemu of course
+* KVM enabled kernel
+
 ### Examples
 
 #### Create a Windows 7 VM
