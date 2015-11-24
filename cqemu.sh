@@ -108,7 +108,7 @@ do_start() {
 		cmd="$cmd -vga qxl -global qxl-vga.vram_size=64000000  -global qxl-vga.vram_size_mb=64000000 -global qxl-vga.vgamem_mb=32000000 "
 		cmd="$cmd -spice port=${spice_port},disable-ticketing "
 		cmd="$cmd -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent "
-		trace "\$(sleep 2; $spice_client --title \"win7_bin (spice_port=${spice_port})\" -h 127.0.0.1 -p ${spice_port} </dev/null >/dev/null 2>/dev/null) &"
+		trace "\$(sleep 2; $spice_client --title \"$vmname (spice_port=${spice_port})\" -h 127.0.0.1 -p ${spice_port} </dev/null >/dev/null 2>/dev/null) &"
 	fi
 	cmd="$cmd $opts "
 	cmd="$cmd $@"
