@@ -43,7 +43,7 @@ $ cqemu new win7 20GB windows
 [-] Running mkdir /home/user/vms/win7
 [-] Running qemu-img create -f raw -o size=20GB /home/user/vms/win7/disk.img
 Formatting '/home/user/vms/win7/disk.img', fmt=raw size=21474836480
-[-] Running echo windows > /home/user/vms/win7/conf_profile
+[-] Running ln -s /home/user/.cqemu/conf.profile.windows > /home/user/vms/win7/conf_profile
 [*] Created VM /home/user/vms/win7
 ```
 

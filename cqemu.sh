@@ -60,10 +60,11 @@ do_new() {
 	if [ X"$1" = X"template" ]; then
 		trace cp -Rp $vms/$2/* $vmdir/
 	else
-		[ $# -ge 1 ] && disksize="$1" || disksize="20GB"
+		disksize="$1"
+		profile="$CONF/conf.profile.$2"
+		[ ! -e $profile ] && echo "ERROR: profile $2 does not exist !" && exit
 		trace qemu-img create -f raw -o size="$disksize" $vmdir/disk.img
-		[ ! -e $CONF/conf.profile.$2 ] && echo "ERROR: profile $2 does not exist !" && exit
-		trace "echo $2 > $vmdir/conf_profile"
+		trace "ln -s $profile $vmdir/conf_profile"
 	fi
 	shift; shift
 
@@ -80,8 +81,7 @@ do_new() {
 }
 
 do_start() {
-	profile=$(cat $vmdir/conf_profile)
-	source $CONF/conf.profile.$profile
+	source $vmdir/conf_profile
 	[ -e $vmdir/conf ] && source $vmdir/conf
 
 	cmd="qemu-system-x86_64"
@@ -110,6 +110,7 @@ do_start() {
 		cmd="$cmd -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent "
 		trace "\$(sleep 2; $spice_client --title \"win7_bin (spice_port=${spice_port})\" -h 127.0.0.1 -p ${spice_port} </dev/null >/dev/null 2>/dev/null) &"
 	fi
+	cmd="$cmd $opts "
 	cmd="$cmd $@"
 
 	trace $cmd
