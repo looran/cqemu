@@ -7,19 +7,17 @@ simple qemu VM command-line manager
 
 ```bash
 $ cqemu
-usage: cqemu [-ph] (new|start|show|spice|ssh vm-dir [options]) | show-profiles
-   -p : pretend, only print commands and do not execute anything
-   -h : this help
+usage: cqemu [-h] (new|start|show|spice|ssh vm-dir [options]) | show-profiles
 
 actions
-   new <vm-name> <profile_name> <disk_size> <network_mode>
-   start <vm-dir> [<network_mode>] [<display_mode>] [qemu-options...]
-   show <vm-dir>
-   spice <vm_name>
-   ssh <vm_name> <username>
+   new <vm_name> <profile_name> <disk_size> <network_mode>
+   start <vm_dir> [<network_mode>] [<display_mode>] [qemu-options...]
+   show <vm_dir>
+   spice <vm_dir>
+   ssh <vm_dir> <username>
    show-profiles
 profiles
-   linux_desk linux_serv raspi3 windows
+   linux-desk linux-serv raspi3 windows
 network_mode
    net-none net-user net-tap[-<ip>/<mask>]
 display_mode
