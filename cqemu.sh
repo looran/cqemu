@@ -6,9 +6,7 @@
 
 usageexit() {
 	cat <<-_EOF
-	usage: $PROG [-ph] (new|start|show|spice|ssh vm-dir [options]) | show-profiles
-	   -p : pretend, only print commands and do not execute anything
-	   -h : this help
+	usage: $PROG [-h] (new|start|show|spice|ssh vm-dir [options]) | show-profiles
 
 	actions
 	   new <vm_name> <profile_name> <disk_size> <network_mode>
@@ -40,7 +38,7 @@ NETWORK_MODES="net-none net-user net-tap[-<ip>/<mask>"]
 DISPLAY_MODES="display-none display-curses display-sdl display-qxl"
 
 err() { echo "$PROG error: $1" >&2; exit 1; }
-trace() { echo "# $*" >&2; [ $pretend -eq 1 ] && return; "$@" ||exit 10; }
+trace() { echo "# $*" >&2; "$@" ||exit 10; }
 
 set_vm_vars() {
 	# sets vm_* variables from vm_name argument
@@ -60,7 +58,6 @@ vm_conf_load() {
 spice_client_start() {
 	spice_cmd="$conf_pre $SPICE_CLIENT --title ${vm_name}...port=${vm_spice_port} -h 127.0.0.1 -p ${vm_spice_port} </dev/null >/dev/null 2>/dev/null) &"
 	echo "delaying spice client on port ${vm_spice_port} : $spice_cmd"
-	[ $pretend -eq 0 ] || return 0
 	$(sleep 2; $spice_cmd) &
 }
 
@@ -145,8 +142,6 @@ SPICE_CLIENT="${SPICE_CLIENT:-spicy}"
 set -e
 
 [ $# -lt 1 -o "$1" = "-h" ] && usageexit
-pretend=0
-[ "$1" = "-p" ] && echo "pretend (-p) active, no commands will be executed" && pretend=1 && shift
 
 action="$1"
 shift
