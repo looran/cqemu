@@ -11,11 +11,11 @@ usageexit() {
 	   -h : this help
 
 	actions
-	   new <vm-name> <profile_name> <disk_size> <network_mode>
-	   start <vm-dir> [<network_mode>] [<display_mode>] [qemu-options...]
-	   show <vm-dir>
-	   spice <vm_name>
-	   ssh <vm_name> <username>
+	   new <vm_name> <profile_name> <disk_size> <network_mode>
+	   start <vm_dir> [<network_mode>] [<display_mode>] [qemu-options...]
+	   show <vm_dir>
+	   spice <vm_dir>
+	   ssh <vm_dir> <username>
 	   show-profiles
 	profiles
 	   $PROFILES
@@ -153,8 +153,8 @@ shift
 case $action in
 new)
 	[ $# -lt 4 ] && usageexit
-	name=$1
-	set_vm_vars $name
+	dir=$1
+	set_vm_vars $dir
 	[ -d $vm_path ] && err "VM already exists in $vm_path"
 	profile=$2
 	disk_size=$3
@@ -182,9 +182,9 @@ _EOF
 	;;
 start)
 	[ $# -lt 1 ] && usageexit
-	name=$1
+	dir=$1
 	shift
-	set_vm_vars $name
+	set_vm_vars $dir
 	vm_conf_load
 	while true; do case $1 in
 		net-*) conf_net=$1; shift ;;
@@ -203,8 +203,8 @@ start)
 	;;
 show)
 	[ $# -lt 1 ] && usageexit
-	name=$1
-	set_vm_vars $name
+	dir=$1
+	set_vm_vars $dir
 	echo "configuration for VM '$vm_name':"
 	[ ! -e $vm_path/conf ] && err "VM configuration not found in $vm_path/conf"
 	trace cat $vm_path/conf
@@ -215,17 +215,17 @@ show)
 	;;
 spice)
 	[ $# -ne 1 ] && usageexit
-	name=$1
-	set_vm_vars $name
+	dir=$1
+	set_vm_vars $dir
 	vm_conf_load
 	spice_client_start
 	;;
 ssh)
 	[ $# -ne 2 ] && usageexit
-	name=$1
+	dir=$1
 	user=$2
 	shift 2
-	set_vm_vars $name
+	set_vm_vars $dir
 	vm_conf_load
 	trace $conf_pre ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p $vm_ssh_port_host $user@127.0.0.1 "$@"
 	;;
