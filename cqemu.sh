@@ -189,7 +189,7 @@ start)
 	while true; do case $1 in
 		net-*) conf_net=$1; shift ;;
 		display-*) conf_display=$1; shift ;;
-		-*) shift; qemu_user_opts="$@"; break ;;
+		-*) qemu_user_opts="$@"; break ;;
 		"") break ;;
 		*) err "invalid option: $@" ;;
 	esac done
