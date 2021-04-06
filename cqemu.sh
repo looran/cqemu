@@ -44,9 +44,9 @@ trace() { echo "# $*" >&2; [ $pretend -eq 1 ] && return; "$@" ||exit 10; }
 
 set_vm_vars() {
 	# sets vm_* variables from vm_name argument
-	name="$1"
-	vm_name="$(basename $1)"
-	vm_path="$(readlink -f $vm_name)"
+	dir="$1"
+	vm_name="$(basename $dir)"
+	vm_path="$(readlink -f $dir)"
 	vm_spice_port="9$(echo $vm_path |md5sum |tr -d 'a-z' |cut -c-3)"
 	vm_ssh_port_host="$(($vm_spice_port + 1))"
 	vm_ftp_port_host="$(($vm_spice_port + 2))"
