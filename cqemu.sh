@@ -209,6 +209,9 @@ show)
 	[ ! -e $vm_path/conf ] && err "VM configuration not found in $vm_path/conf"
 	trace cat $vm_path/conf
 	trace qemu-img info $vm_path/disk.img
+	echo "VM spice port : 127.0.0.1:$vm_spice_port"
+	echo "VM ssh port   : 127.0.0.1:$vm_ssh_port_host"
+	echo "VM ftp port   : 127.0.0.1:$vm_ftp_port_host"
 	;;
 spice)
 	[ $# -ne 1 ] && usageexit
