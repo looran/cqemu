@@ -12,7 +12,7 @@ usage: cqemu [-ph] (new|start|show|spice|ssh vm-dir [options]) | show-profiles
    -h : this help
 
 actions
-   new <vm-dir> <profile_name> <disk_size> <network_mode>
+   new <vm-name> <profile_name> <disk_size> <network_mode>
    start <vm-dir> [<network_mode>] [<display_mode>] [qemu-options...]
    show <vm-dir>
    spice <vm_name>

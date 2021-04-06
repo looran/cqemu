@@ -11,7 +11,7 @@ usageexit() {
 	   -h : this help
 
 	actions
-	   new <vm-dir> <profile_name> <disk_size> <network_mode>
+	   new <vm-name> <profile_name> <disk_size> <network_mode>
 	   start <vm-dir> [<network_mode>] [<display_mode>] [qemu-options...]
 	   show <vm-dir>
 	   spice <vm_name>
@@ -35,7 +35,7 @@ usageexit() {
 	_EOF
 	exit 1
 }
-PROFILES="linux_desk linux_serv raspi3 windows"
+PROFILES="linux-desk linux-serv raspi3 windows"
 NETWORK_MODES="net-none net-user net-tap[-<ip>/<mask>"]
 DISPLAY_MODES="display-none display-curses display-sdl display-qxl"
 
@@ -69,11 +69,11 @@ set_profile_vars() {
 	viewonly="$2"
 	LINUX_DEFAULTS="qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 2G"
 	case $profile in
-	linux_desk)
+	linux-desk)
 		cmd="sudo $LINUX_DEFAULTS -device intel-hda -device hda-duplex -drive file=$vm_path/disk.img,if=virtio,format=raw"
 		display="display-qxl"
 		;;
-	linux_serv)
+	linux-serv)
 		cmd="sudo $LINUX_DEFAULTS -drive file=$vm_path/disk.img,format=raw"
 		display="display-sdl"
 		;;
