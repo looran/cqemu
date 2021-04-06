@@ -16,7 +16,7 @@ actions
    start <vm-dir> [<network_mode>] [<display_mode>] [qemu-options...]
    show <vm-dir>
    spice <vm_name>
-   ssh <vm_name>
+   ssh <vm_name> <username>
    show-profiles
 profiles
    linux_desk linux_serv raspi3 windows

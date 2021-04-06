@@ -15,7 +15,7 @@ usageexit() {
 	   start <vm-dir> [<network_mode>] [<display_mode>] [qemu-options...]
 	   show <vm-dir>
 	   spice <vm_name>
-	   ssh <vm_name>
+	   ssh <vm_name> <username>
 	   show-profiles
 	profiles
 	   $PROFILES
@@ -211,18 +211,20 @@ show)
 	trace qemu-img info $vm_path/disk.img
 	;;
 spice)
-	[ $# -lt 1 ] && usageexit
+	[ $# -ne 1 ] && usageexit
 	name=$1
 	set_vm_vars $name
 	vm_conf_load
 	spice_client_start
 	;;
 ssh)
-	[ $# -lt 1 ] && usageexit
+	[ $# -ne 2 ] && usageexit
 	name=$1
+	user=$2
+	shift 2
 	set_vm_vars $name
 	vm_conf_load
-	trace $conf_pre ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p $vm_ssh_port_host u@127.0.0.1 "$@"
+	trace $conf_pre ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p $vm_ssh_port_host $user@127.0.0.1 "$@"
 	;;
 show-profiles)
 	echo "--- profiles ---"
