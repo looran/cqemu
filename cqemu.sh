@@ -36,7 +36,7 @@ usageexit() {
 }
 PROFILES="linux-desk linux-serv raspi3 windows"
 NETWORK_MODES="net-none net-user net-tap[-<ip>/<mask>"]
-DISPLAY_MODES="display-none display-curses display-sdl display-qxl"
+DISPLAY_MODES="display-none display-curses display-sdl display-virtio display-qxl-spice display-virtio-spice"
 
 err() { echo "$PROG error: $1" >&2; exit 1; }
 trace() { echo "# $*" >&2; "$@" ||exit 10; }
@@ -47,9 +47,8 @@ set_vm_vars() {
 	vm_name="$(basename $dir)"
 	vm_path="$(readlink -f $dir)"
 	vm_monitor_port="9$(echo $vm_path |md5sum |tr -d 'a-z' |cut -c-3)"
-	vm_spice_port="$(($vm_monitor_port + 1))"
-	vm_ssh_port_host="$(($vm_monitor_port + 2))"
-	vm_ftp_port_host="$(($vm_monitor_port + 3))"
+	vm_ssh_port_host="$(($vm_monitor_port + 1))"
+	vm_ftp_port_host="$(($vm_monitor_port + 2))"
 }
 
 vm_conf_load() {
@@ -58,9 +57,11 @@ vm_conf_load() {
 }
 
 spice_client_start() {
-	spice_cmd="$conf_pre $SPICE_CLIENT --title "${vm_name}" -h 127.0.0.1 -p ${vm_spice_port} </dev/null >/dev/null 2>/dev/null) &"
-	echo "delaying spice client on port ${vm_spice_port} : $spice_cmd"
-	$(sleep 2; $spice_cmd) &
+	user=$(whoami)
+	spice_path="${vm_path}/spice.sock"
+	spice_cmd="$SPICE_CLIENT --title "${vm_name}" --uri=spice+unix://$spice_path </dev/null >/dev/null 2>/dev/null) &"
+	echo "delaying spice client : $spice_cmd"
+	$(sleep 2; sudo chown ${user}: $spice_path; $spice_cmd) &
 }
 
 set_profile_vars() {
@@ -70,7 +71,7 @@ set_profile_vars() {
 	case $profile in
 	linux-desk)
 		cmd="sudo $LINUX_DEFAULTS -device intel-hda -device hda-duplex -drive file=$vm_path/disk.img,if=virtio,format=raw"
-		display="display-qxl"
+		display="display-virtio-spice" # gl acceleration with spice integration, good linux support
 		;;
 	linux-serv)
 		cmd="sudo $LINUX_DEFAULTS -drive file=$vm_path/disk.img,format=raw"
@@ -84,7 +85,7 @@ set_profile_vars() {
 		;;
 	windows)
 		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 4G -drive file=$vm_path/disk.img"
-		display="display-qxl"
+		display="display-qxl-spice" # not accelerated but windows does not have virtio-vga drivers
 		;;
 	*)
 		err "invalid profile: $profile'. choices: $PROFILES"
@@ -102,10 +103,16 @@ set_qemu_display() {
 		display-none) qemu_display="-display none" ;;
 		display-curses) qemu_display="-display curses" ;;
 		display-sdl) qemu_display="" ;;
-		display-qxl)
+		display-virtio) qemu_display="-vga virtio -display gtk,gl=on" ;;
+		display-qxl-spice)
 			# max_outputs=1 : workaround QEMU 4.1.0 regression with QXL video
 			# see https://wiki.archlinux.org/index.php/QEMU#QXL_video_causes_low_resolution
-			qemu_display="-vga none -device qxl-vga,max_outputs=1,vgamem_mb=256,vram_size_mb=256 -spice port=${vm_spice_port},disable-ticketing -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
+			qemu_display="-vga none -device qxl-vga,max_outputs=1,vgamem_mb=256,vram_size_mb=256 -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=${vm_path}/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
+			[ ! -z "$viewonly" ] && return
+			spice_client_start
+			;;
+		display-virtio-spice)
+			qemu_display="-vga virtio -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=${vm_path}/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
 			[ ! -z "$viewonly" ] && return
 			spice_client_start
 			;;
@@ -208,7 +215,6 @@ show)
 	trace cat $vm_path/conf
 	trace qemu-img info $vm_path/disk.img
 	echo "VM monitor port : 127.0.0.1:$vm_monitor_port"
-	echo "VM spice port   : 127.0.0.1:$vm_spice_port"
 	echo "VM ssh port     : 127.0.0.1:$vm_ssh_port_host"
 	echo "VM ftp port     : 127.0.0.1:$vm_ftp_port_host"
 	;;
@@ -240,8 +246,9 @@ show-profiles)
 	echo "--- profiles ---"
 	for p in $PROFILES; do
 		set_profile_vars $p viewonly
-		echo "$p ($profile_display_mode)"
+		echo "$p"
 		echo "   $profile_qemu_cmd"
+		echo "   default display: $profile_display_mode"
 	done
 	echo "--- network modes ---"
 	for n in $NETWORK_MODES; do

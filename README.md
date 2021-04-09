@@ -22,7 +22,7 @@ profiles
 network_mode
    net-none net-user net-tap[-<ip>/<mask>]
 display_mode
-   display-none display-curses display-sdl display-qxl
+   display-none display-curses display-sdl display-virtio display-qxl-spice display-virtio-spice
 environnment variables
    QEMU_RUNAS=nobody
    SPICE_CLIENT=spicy
@@ -39,23 +39,29 @@ examples
 ```bash
 $ cqemu show-profiles
 --- profiles ---
-linux_desk (display-qxl)
+linux-desk
    sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 2G -device intel-hda -device hda-duplex -drive file=/disk.img,if=virtio,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
-linux_serv (display-sdl)
+   default display: display-virtio-spice
+linux-serv
    sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 2G -drive file=/disk.img,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
-raspi3 (display-sdl)
+   default display: display-sdl
+raspi3
    sudo qemu-system-aarch64 -M raspi3 -kernel /kernel.img -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
-windows (display-qxl)
+   default display: display-sdl
+windows
    sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 4G -drive file=/disk.img -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
+   default display: display-qxl-spice
 --- network modes ---
 net-none : -nic none
 net-user : -netdev user,id=net0,hostfwd=tcp:127.0.0.1:-:22,hostfwd=tcp:127.0.0.1:-:21 -device virtio-net-pci,netdev=net0
-net-tap[-<ip>/<mask>] : -netdev tap,id=net0,ifname=,script=no,downscript=no -device virtio-net-pci,netdev=net0
+net-tap[-<ip>/<mask>] : -netdev tap,id=net0,ifname=tap-,script=no,downscript=no -device virtio-net-pci,netdev=net0
 --- display modes ---
 display-none : -display none
 display-curses : -display curses
 display-sdl : 
-display-qxl : -vga none -device qxl-vga,max_outputs=1,vgamem_mb=256,vram_size_mb=256 -spice port=,disable-ticketing -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent
+display-virtio : -vga virtio -display gtk,gl=on
+display-qxl-spice : -vga none -device qxl-vga,max_outputs=1,vgamem_mb=256,vram_size_mb=256 -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent
+display-virtio-spice : -vga virtio -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent
 ```
 
 ### Dependencies and requirements
