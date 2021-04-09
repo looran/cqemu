@@ -13,6 +13,7 @@ actions
    new <vm_name> <profile_name> <disk_size> <network_mode>
    start <vm_dir> [<network_mode>] [<display_mode>] [qemu-options...]
    show <vm_dir>
+   mon <vm_dir> [<netcat_options>]
    spice <vm_dir>
    ssh <vm_dir> <username>
    show-profiles
@@ -27,10 +28,10 @@ environnment variables
    SPICE_CLIENT=spicy
 examples
    cqemu new mylinux linux-desk 20G net-user
-   cqemu new mywindows windows 20G net-none
-   cqemu new myserver linux-server 20G net-tap-192.168.0.1/24
+   cqemu new mywindows windows 20G net-tap-192.168.0.1/24
    cqemu start mylinux
-   cqemu start mylinux net-none -cdrom /data/mycd.iso
+   echo stop |cqemu mon mylinux -q0
+   cqemu start mywindows net-none -cdrom /data/mycd.iso
 ```
 
 #### Profiles and modes

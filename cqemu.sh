@@ -12,6 +12,7 @@ usageexit() {
 	   new <vm_name> <profile_name> <disk_size> <network_mode>
 	   start <vm_dir> [<network_mode>] [<display_mode>] [qemu-options...]
 	   show <vm_dir>
+	   mon <vm_dir> [<netcat_options>]
 	   spice <vm_dir>
 	   ssh <vm_dir> <username>
 	   show-profiles
@@ -26,10 +27,10 @@ usageexit() {
 	   SPICE_CLIENT=$SPICE_CLIENT
 	examples
 	   $PROG new mylinux linux-desk 20G net-user
-	   $PROG new mywindows windows 20G net-none
-	   $PROG new myserver linux-server 20G net-tap-192.168.0.1/24
+	   $PROG new mywindows windows 20G net-tap-192.168.0.1/24
 	   $PROG start mylinux
-	   $PROG start mylinux net-none -cdrom /data/mycd.iso
+	   echo stop |$PROG mon mylinux -q0
+	   $PROG start mywindows net-none -cdrom /data/mycd.iso
 	_EOF
 	exit 1
 }
@@ -45,9 +46,10 @@ set_vm_vars() {
 	dir="$1"
 	vm_name="$(basename $dir)"
 	vm_path="$(readlink -f $dir)"
-	vm_spice_port="9$(echo $vm_path |md5sum |tr -d 'a-z' |cut -c-3)"
-	vm_ssh_port_host="$(($vm_spice_port + 1))"
-	vm_ftp_port_host="$(($vm_spice_port + 2))"
+	vm_monitor_port="9$(echo $vm_path |md5sum |tr -d 'a-z' |cut -c-3)"
+	vm_spice_port="$(($vm_monitor_port + 1))"
+	vm_ssh_port_host="$(($vm_monitor_port + 2))"
+	vm_ftp_port_host="$(($vm_monitor_port + 3))"
 }
 
 vm_conf_load() {
@@ -166,7 +168,6 @@ new)
 # creation host : $(uname -a)
 # creation path : $vm_path
 conf_qemu_cmd_base="$profile_qemu_cmd"
-conf_qemu_cmd_opts=""
 conf_display="$profile_display_mode"
 conf_net="$net_mode"
 conf_pre=""
@@ -195,7 +196,8 @@ start)
 	trace sudo date # get sudo password before qemu
 	set_qemu_net $conf_net
 	set_qemu_display $conf_display
-	trace $conf_pre $conf_qemu_cmd_base $qemu_display $qemu_net $conf_qemu_cmd_opts $qemu_user_opts
+	qemu_extra_opts="-monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
+	trace $conf_pre $conf_qemu_cmd_base $qemu_display $qemu_net $qemu_extra_opts $qemu_user_opts
 	;;
 show)
 	[ $# -lt 1 ] && usageexit
@@ -208,6 +210,14 @@ show)
 	echo "VM spice port : 127.0.0.1:$vm_spice_port"
 	echo "VM ssh port   : 127.0.0.1:$vm_ssh_port_host"
 	echo "VM ftp port   : 127.0.0.1:$vm_ftp_port_host"
+	;;
+mon)
+	[ $# -lt 1 ] && usageexit
+	dir=$1
+	shift
+	set_vm_vars $dir
+	vm_conf_load
+	trace $conf_pre nc $@ -nvvv 127.0.0.1 $vm_monitor_port
 	;;
 spice)
 	[ $# -ne 1 ] && usageexit
