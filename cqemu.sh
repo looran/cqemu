@@ -58,7 +58,7 @@ vm_conf_load() {
 }
 
 spice_client_start() {
-	spice_cmd="$conf_pre $SPICE_CLIENT --title ${vm_name}...port=${vm_spice_port} -h 127.0.0.1 -p ${vm_spice_port} </dev/null >/dev/null 2>/dev/null) &"
+	spice_cmd="$conf_pre $SPICE_CLIENT --title "${vm_name}" -h 127.0.0.1 -p ${vm_spice_port} </dev/null >/dev/null 2>/dev/null) &"
 	echo "delaying spice client on port ${vm_spice_port} : $spice_cmd"
 	$(sleep 2; $spice_cmd) &
 }
