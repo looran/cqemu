@@ -118,13 +118,14 @@ set_qemu_net() {
 		net-none) qemu_net="-nic none" ;;
 		net-user) qemu_net="-netdev user,id=net0,hostfwd=tcp:127.0.0.1:${vm_ssh_port_host}-:22,hostfwd=tcp:127.0.0.1:${vm_ftp_port_host}-:21 -device virtio-net-pci,netdev=net0" ;;
 		net-tap*)
+			iface="tap-$vm_name"
+			user=$(whoami)
 			ip="$(echo $net |cut -d- -f3)"
 			qemu_net="-netdev tap,id=net0,ifname=$iface,script=no,downscript=no -device virtio-net-pci,netdev=net0"
 			[ ! -z "$viewonly" ] && return
-			iface="tap-$vm_name"
-			user=$(whoami)
 			$conf_pre ip a s dev $iface >/dev/null 2>&1 || \
 				trace $conf_pre sudo ip tuntap add user $user mode tap name $iface
+			trace $conf_pre sudo ip a f dev $iface
 			[ ! -z "$ip" ] && trace $conf_pre sudo ip a a $ip dev $iface
 			trace $conf_pre sudo ip link set $iface up promisc on
 			trace sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
