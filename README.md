@@ -76,8 +76,9 @@ display-virtio-spice: -vga virtio -spice disable-ticketing,image-compression=off
 ### Dependencies and requirements
 
 * qemu of course
-* if desktop profiles are used: KVM enabled kernel
-* if display qxl used: spicy (spice-gtk package), the spice client used by default
+* if x86 profiles are used: KVM enabled in kernel
+* if fsshare:<path> option is used: virtiofs enabled in qemu
+* if display-qxl-spice or display-virtio-spice options are used: spicy (spice-gtk package), the spice client used by default
 
 ### Installation
 
