@@ -6,39 +6,46 @@
 
 usageexit() {
 	cat <<-_EOF
-	usage: $PROG [-h] (new|start|show|spice|ssh vm-dir [options]) | show-profiles
+	usage: $PROG [-h] (new|start|show|mon|spice|user <vm-dir> [options]) | show-profiles
 
 	actions
-	   new <vm_name> <profile_name> <disk_size> <network_mode>
-	   start <vm_dir> [<network_mode>] [<display_mode>] [qemu-options...]
+	   new <vm_name> <profile_name> <disk_size> <network_mode> [<fsshare_mode>]
+	   start <vm_dir> [<network_mode>] [<fsshare_mode>] [<display_mode>] [qemu-options...]
 	   show <vm_dir>
 	   mon <vm_dir> [<netcat_options>]
 	   spice <vm_dir>
-	   ssh <vm_dir> <username>
+	   user <vm_dir> <user-action> [<user-args...>]
 	   show-profiles
 	profiles
 	   $PROFILES
 	network_mode
 	   $NETWORK_MODES
+	fsshare_mode
+	   $FSSHARE_MODES
 	display_mode
 	   $DISPLAY_MODES
 	environnment variables
 	   QEMU_RUNAS=$QEMU_RUNAS
 	   SPICE_CLIENT=$SPICE_CLIENT
+	   VIRTIOFSD_PATH=$VIRTIOFSD_PATH
 	examples
-	   $PROG new mylinux linux-desk 20G net-user
-	   $PROG new mywindows windows 20G net-tap-192.168.0.1/24
-	   $PROG start mylinux
-	   echo stop |$PROG mon mylinux -q0
-	   $PROG start mywindows net-none -cdrom /data/mycd.iso
+	   $PROG new vm_windows windows 20G net-user
+	   $PROG new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
+	   $PROG start vm_windows
+	   echo system_powerdown |$PROG mon vm_windows -q0
+	   $PROG start vm_windows net-none -cdrom /data/mycd.iso
+	user actions example
+	   echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
+	   $PROG user vm_linux onstart-iptables
 	_EOF
 	exit 1
 }
 PROFILES="linux-desk linux-serv raspi3 windows"
-NETWORK_MODES="net-none net-user net-tap[-<ip>/<mask>"]
+NETWORK_MODES="net-none net-user[:<user_options>] net-tap[:<ip>/<mask>"]
+FSSHARE_MODES="fsshare-none fsshare:<path>"
 DISPLAY_MODES="display-none display-curses display-sdl display-virtio display-qxl-spice display-virtio-spice"
 
-err() { echo "$PROG error: $1" >&2; exit 1; }
+err() { echo -e "$PROG error: $1" >&2; exit 1; }
 trace() { echo "# $*" >&2; "$@" ||exit 10; }
 
 set_vm_vars() {
@@ -48,7 +55,6 @@ set_vm_vars() {
 	vm_path="$(readlink -f $dir)"
 	vm_monitor_port="9$(echo $vm_path |md5sum |tr -d 'a-z' |cut -c-3)"
 	vm_ssh_port_host="$(($vm_monitor_port + 1))"
-	vm_ftp_port_host="$(($vm_monitor_port + 2))"
 }
 
 vm_conf_load() {
@@ -56,18 +62,24 @@ vm_conf_load() {
 	. "$vm_path/conf"
 }
 
+substitute_vars() {
+	cmd="$1"
+	cmd="$(echo "$cmd" |sed s:VM_DIR:${vm_path}:g)"
+	cmd="$(echo "$cmd" |sed s/VM_SSH_PORT_HOST/$vm_ssh_port_host/g)"
+	echo "$cmd"
+}
+
 spice_client_start() {
-	user=$(whoami)
 	spice_path="${vm_path}/spice.sock"
 	spice_cmd="$SPICE_CLIENT --title "${vm_name}" --uri=spice+unix://$spice_path </dev/null >/dev/null 2>/dev/null) &"
 	echo "delaying spice client : $spice_cmd"
-	$(sleep 2; sudo chown ${user}: $spice_path; $spice_cmd) &
+	$(sleep 2; sudo chown ${USER}: $spice_path; $spice_cmd) &
 }
 
 set_profile_vars() {
 	profile="$1"
 	viewonly="$2"
-	LINUX_DEFAULTS="qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 2G"
+	LINUX_DEFAULTS="qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G"
 	case $profile in
 	linux-desk)
 		cmd="sudo $LINUX_DEFAULTS -device intel-hda -device hda-duplex -drive file=$vm_path/disk.img,if=virtio,format=raw"
@@ -84,7 +96,7 @@ set_profile_vars() {
 		display="display-sdl"
 		;;
 	windows)
-		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 4G -drive file=$vm_path/disk.img"
+		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=$vm_path/disk.img,format=raw"
 		display="display-qxl-spice" # not accelerated but windows does not have virtio-vga drivers
 		;;
 	*)
@@ -96,6 +108,56 @@ set_profile_vars() {
 	profile_display_mode="$display"
 }
 
+set_qemu_net() {
+	net=$1
+	viewonly=$2
+	case $net in
+		net-none) qemu_netdev="user,id=net0"; qemu_net="-nic none" ;;
+		net-user*)
+			IFS=':' read -r _ options <<< "$net"
+			[ ! -z "$options" ] && options=,$(substitute_vars "$options")
+			qemu_netdev="user,id=net0,hostfwd=tcp:127.0.0.1:${vm_ssh_port_host}-:22${options}"
+			qemu_net="-device virtio-net-pci,netdev=net0"
+			;;
+		net-tap*)
+			iface="tap-$vm_name"
+			IFS=':' read -r _ ip <<< "$net"
+			qemu_netdev="tap,id=net0,ifname=$iface,script=no,downscript=no"
+			qemu_net="-device virtio-net-pci,netdev=net0"
+			[ ! -z "$viewonly" ] && return
+			$conf_pre ip a s dev $iface >/dev/null 2>&1 || \
+				trace $conf_pre sudo ip tuntap add user $USER mode tap name $iface
+			trace $conf_pre sudo ip a f dev $iface
+			[ ! -z "$ip" ] && trace $conf_pre sudo ip a a $ip dev $iface
+			trace $conf_pre sudo ip link set $iface up promisc on
+			;;
+		*) err "invalid network mode: $net. choices: $NETWORK_MODES" ;;
+	esac
+}
+
+set_qemu_fsshare() {
+	fsshare=$1
+	viewonly=$2
+	case $fsshare in
+		fsshare-none) qemu_fsshare="" ;;
+		fsshare:*)
+			IFS=':' read -r _ dir <<< "$fsshare"
+			dir=$(substitute_vars "$dir")
+			sock="$vm_path/fsshare.sock"
+			qemu_fsshare="-object memory-backend-memfd,id=mem,size=VM_MEMORY,share=on -numa node,memdev=mem -chardev socket,id=char0,path=$sock -device vhost-user-fs-pci,chardev=char0,tag=share"
+			[ ! -z "$viewonly" ] && return
+			[ ! -e $VIRTIOFSD_PATH ] && err "virtiofsd not found, VIRTIOFSD_PATH=$VIRTIOFSD_PATH does not exist"
+			[ ! -d $dir ] && err "shared directory does not exist : $dir"
+			vm_memory=$(sed -n "s/^conf_qemu_cmd_base.*-m \([0-9]*[MG]\) .*/\1/p" $vm_path/conf)
+			qemu_fsshare="$(echo $qemu_fsshare |sed s/VM_MEMORY/$vm_memory/)"
+			trace sudo $VIRTIOFSD_PATH --socket-path=$sock -o source=$dir -o cache=always &
+			trace sleep 1
+			trace sudo chown $USER $sock
+			;;
+		*) err "invalid fsshare mode: $fsshare. choices: $FSSHARE_MODES" ;;
+	esac
+}
+
 set_qemu_display() {
 	display=$1
 	viewonly=$2
@@ -105,8 +167,7 @@ set_qemu_display() {
 		display-sdl) qemu_display="" ;;
 		display-virtio) qemu_display="-vga virtio -display gtk,gl=on" ;;
 		display-qxl-spice)
-			# max_outputs=1 : workaround QEMU 4.1.0 regression with QXL video
-			# see https://wiki.archlinux.org/index.php/QEMU#QXL_video_causes_low_resolution
+			# max_outputs=1: workaround QEMU 4.1.0 regression with QXL video, see https://wiki.archlinux.org/index.php/QEMU#QXL_video_causes_low_resolution
 			qemu_display="-vga none -device qxl-vga,max_outputs=1,vgamem_mb=256,vram_size_mb=256 -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=${vm_path}/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
 			[ ! -z "$viewonly" ] && return
 			spice_client_start
@@ -120,34 +181,11 @@ set_qemu_display() {
 	esac
 }
 
-set_qemu_net() {
-	net=$1
-	viewonly=$2
-	case $net in
-		net-none) qemu_net="-nic none" ;;
-		net-user) qemu_net="-netdev user,id=net0,hostfwd=tcp:127.0.0.1:${vm_ssh_port_host}-:22,hostfwd=tcp:127.0.0.1:${vm_ftp_port_host}-:21 -device virtio-net-pci,netdev=net0" ;;
-		net-tap*)
-			iface="tap-$vm_name"
-			user=$(whoami)
-			ip="$(echo $net |cut -d- -f3)"
-			qemu_net="-netdev tap,id=net0,ifname=$iface,script=no,downscript=no -device virtio-net-pci,netdev=net0"
-			[ ! -z "$viewonly" ] && return
-			$conf_pre ip a s dev $iface >/dev/null 2>&1 || \
-				trace $conf_pre sudo ip tuntap add user $user mode tap name $iface
-			trace $conf_pre sudo ip a f dev $iface
-			[ ! -z "$ip" ] && trace $conf_pre sudo ip a a $ip dev $iface
-			trace $conf_pre sudo ip link set $iface up promisc on
-			trace sudo sysctl -w net.bridge.bridge-nf-call-iptables=0
-			trace sudo sysctl -w net.bridge.bridge-nf-call-ip6tables=0
-			trace sudo sysctl -w net.bridge.bridge-nf-call-arptables=0
-			;;
-		*) err "invalid network mode: $net. choices: $NETWORK_MODES" ;;
-	esac
-}
-
 PROG=$(basename $0)
 QEMU_RUNAS=${QEMU_RUNAS:-nobody}
 SPICE_CLIENT="${SPICE_CLIENT:-spicy}"
+VIRTIOFSD_PATH="${VIRTIOFSD_PATH:-/usr/libexec/virtiofsd}"
+USER=$(whoami)
 
 set -e
 
@@ -164,9 +202,11 @@ new)
 	profile=$2
 	disk_size=$3
 	net_mode=$4
+	[ $# -eq 5 ] && fsshare_mode=$5 || fsshare_mode="fsshare-none"
 	echo "[+] validating VM profile"
 	set_profile_vars $profile
-	set_qemu_net $net_mode viewonly
+	set_qemu_net $net_mode checkonly
+	set_qemu_fsshare $fsshare_mode checkonly
 	echo "[+] creating new VM configuration"
 	mkdir "$vm_path"
 	cat > "$vm_path/conf" <<-_EOF
@@ -175,9 +215,11 @@ new)
 # creation host : $(uname -a)
 # creation path : $vm_path
 conf_qemu_cmd_base="$profile_qemu_cmd"
-conf_display="$profile_display_mode"
 conf_net="$net_mode"
+conf_fsshare="$fsshare_mode"
+conf_display="$profile_display_mode"
 conf_pre=""
+conf_user_actions=""
 _EOF
 	trace cat "$vm_path/conf"
 	echo "[+] creating new VM image"
@@ -192,6 +234,7 @@ start)
 	vm_conf_load
 	while true; do case $1 in
 		net-*) conf_net=$1; shift ;;
+		fsshare*) conf_fsshare=$1; shift ;;
 		display-*) conf_display=$1; shift ;;
 		-*) qemu_user_opts="$@"; break ;;
 		"") break ;;
@@ -199,12 +242,21 @@ start)
 	esac done
 	echo "pre command  : $conf_pre"
 	echo "network mode : $conf_net"
+	echo "fsshare mode : $conf_fsshare"
 	echo "display mode : $conf_display"
 	trace sudo date # get sudo password before qemu
-	set_qemu_net $conf_net
+	set_qemu_net "$conf_net"
+	set_qemu_fsshare $conf_fsshare
 	set_qemu_display $conf_display
 	qemu_extra_opts="-monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
-	trace $conf_pre $conf_qemu_cmd_base $qemu_display $qemu_net $qemu_extra_opts $qemu_user_opts
+	while read -r line; do
+		IFS=':' read -r action_name action_cmd <<< "$line"
+		if [[ $action_name == onstart* ]]; then
+			echo "starting onstart action $action_name"
+			trace $conf_pre /bin/sh -c "$(substitute_vars "$action_cmd")" &
+		fi
+	done <<< "$conf_user_actions"
+	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_extra_opts $qemu_user_opts
 	;;
 show)
 	[ $# -lt 1 ] && usageexit
@@ -216,7 +268,6 @@ show)
 	trace qemu-img info $vm_path/disk.img
 	echo "VM monitor port : 127.0.0.1:$vm_monitor_port"
 	echo "VM ssh port     : 127.0.0.1:$vm_ssh_port_host"
-	echo "VM ftp port     : 127.0.0.1:$vm_ftp_port_host"
 	;;
 mon)
 	[ $# -lt 1 ] && usageexit
@@ -233,16 +284,27 @@ spice)
 	vm_conf_load
 	spice_client_start
 	;;
-ssh)
-	[ $# -ne 2 ] && usageexit
+user)
+	[ $# -eq 0 ] && usageexit
 	dir=$1
-	user=$2
-	shift 2
 	set_vm_vars $dir
 	vm_conf_load
-	trace $conf_pre ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p $vm_ssh_port_host $user@127.0.0.1 "$@"
+	[ $# -eq 1 ] && echo -e "conf_user_actions=\n$conf_user_actions" && exit 0
+	action=$2
+	shift 2
+	while read -r line; do
+		IFS=':' read -r action_name action_cmd <<< "$line"
+		[ "$action" = "$action_name" ] && cmd=$(substitute_vars "$action_cmd") && break
+	done <<< "$conf_user_actions"
+	[ -z "$cmd" ] && err "user action '$action' not found for VM '$vm_name'.\nconf_user_actions=\n$conf_user_actions"
+	[[ $action_name == nopre* ]] \
+		&& trace $cmd $@ \
+		|| trace $conf_pre $cmd $@
 	;;
 show-profiles)
+	vm_ssh_port_host="VM_SSH_PORT_HOST"
+	vm_name="VM_NAME"
+	vm_path="VM_PATH"
 	echo "--- profiles ---"
 	for p in $PROFILES; do
 		set_profile_vars $p viewonly
@@ -252,13 +314,19 @@ show-profiles)
 	done
 	echo "--- network modes ---"
 	for n in $NETWORK_MODES; do
+		n="$(echo $n |cut -d'[' -f1)"
 		set_qemu_net $n viewonly
-		echo "$n : $qemu_net"
+		echo "$n: -netdev $qemu_netdev $qemu_net"
+	done
+	echo "--- fsshare modes ---"
+	for f in $FSSHARE_MODES; do
+		set_qemu_fsshare $f viewonly
+		echo "$f: $qemu_fsshare"
 	done
 	echo "--- display modes ---"
 	for d in $DISPLAY_MODES; do
 		set_qemu_display $d viewonly
-		echo "$d : $qemu_display"
+		echo "$d: $qemu_display"
 	done
 	;;
 *)
