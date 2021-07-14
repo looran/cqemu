@@ -257,7 +257,7 @@ start)
 			trace $conf_pre /bin/sh -c "$(substitute_vars "$action_cmd")" &
 		fi
 	done <<< "$conf_user_actions"
-	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_extra_opts $qemu_user_opts
+	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_user_opts
 	;;
 show)
 	[ $# -lt 1 ] && usageexit
