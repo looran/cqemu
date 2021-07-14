@@ -72,9 +72,10 @@ substitute_vars() {
 
 spice_client_start() {
 	spice_path="${vm_path}/spice.sock"
-	spice_cmd="$SPICE_CLIENT --title "${vm_name}" --uri=spice+unix://$spice_path </dev/null >/dev/null 2>/dev/null) &"
+	spice_cmd="$SPICE_CLIENT spice+unix://$spice_path"
+	trace sudo chown ${USER}: $spice_path
 	echo "delaying spice client : $spice_cmd"
-	$(sleep 2; sudo chown ${USER}: $spice_path; $spice_cmd) &
+	$(sleep 2; $spice_cmd) &
 }
 
 set_profile_vars() {
@@ -184,7 +185,7 @@ set_qemu_display() {
 
 PROG=$(basename $0)
 QEMU_RUNAS=${QEMU_RUNAS:-nobody}
-SPICE_CLIENT="${SPICE_CLIENT:-spicy}"
+SPICE_CLIENT="${SPICE_CLIENT:-remote-viewer}"
 VIRTIOFSD_PATH="${VIRTIOFSD_PATH:-/usr/libexec/virtiofsd}"
 USER=$(whoami)
 
