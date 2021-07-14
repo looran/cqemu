@@ -105,7 +105,7 @@ set_profile_vars() {
 		err "invalid profile: $profile'. choices: $PROFILES"
 		;;
 	esac
-	cmd="$cmd -chroot /var/empty -runas $QEMU_RUNAS -sandbox on,obsolete=deny,spawn=deny"
+	cmd="$cmd -chroot /var/empty -runas $QEMU_RUNAS -sandbox on,obsolete=deny,spawn=deny,resourcecontrol=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
 	profile_qemu_cmd="$cmd"
 	profile_display_mode="$display"
 }
@@ -250,7 +250,6 @@ start)
 	set_qemu_net "$conf_net"
 	set_qemu_fsshare $conf_fsshare
 	set_qemu_display $conf_display
-	qemu_extra_opts="-monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
 	while read -r line; do
 		IFS=':' read -r action_name action_cmd <<< "$line"
 		if [[ $action_name == onstart* ]]; then
