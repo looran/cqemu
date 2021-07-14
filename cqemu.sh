@@ -296,14 +296,18 @@ user)
 	[ $# -eq 1 ] && echo -e "conf_user_actions=\n$conf_user_actions" && exit 0
 	action=$2
 	shift 2
+	found=0
 	while read -r line; do
 		IFS=':' read -r action_name action_cmd <<< "$line"
-		[ "$action" = "$action_name" ] && cmd=$(substitute_vars "$action_cmd") && break
+		if [ "$action" = "$action_name" ]; then
+			cmd=$(substitute_vars "$action_cmd")
+			[[ $action_name == nopre* ]] \
+				&& trace /bin/sh -c "$cmd $@" \
+				|| trace $conf_pre /bin/sh -c "$cmd $@"
+			found=$(($found+1))
+		fi
 	done <<< "$conf_user_actions"
-	[ -z "$cmd" ] && err "user action '$action' not found for VM '$vm_name'.\nconf_user_actions=\n$conf_user_actions"
-	[[ $action_name == nopre* ]] \
-		&& trace $cmd $@ \
-		|| trace $conf_pre $cmd $@
+	[ $found -eq 0 ] && err "user action '$action' not found for VM '$vm_name'.\nconf_user_actions=\n$conf_user_actions"
 	;;
 show-profiles)
 	vm_ssh_port_host="VM_SSH_PORT_HOST"
