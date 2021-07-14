@@ -254,7 +254,10 @@ start)
 		IFS=':' read -r action_name action_cmd <<< "$line"
 		if [[ $action_name == onstart* ]]; then
 			echo "starting onstart action $action_name"
-			trace $conf_pre /bin/sh -c "$(substitute_vars "$action_cmd")" &
+			cmd=$(substitute_vars "$action_cmd")
+			[[ $action_name == onstart-nopre* ]] \
+				&& trace /bin/sh -c "$cmd" \
+				|| trace $conf_pre /bin/sh -c "$cmd"
 		fi
 	done <<< "$conf_user_actions"
 	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_user_opts
