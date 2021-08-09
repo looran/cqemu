@@ -73,9 +73,9 @@ substitute_vars() {
 spice_client_start() {
 	spice_path="${vm_path}/spice.sock"
 	spice_cmd="$SPICE_CLIENT spice+unix://$spice_path"
-	trace sudo chown ${USER}: $spice_path
 	echo "delaying spice client : $spice_cmd"
-	$(sleep 2; $spice_cmd) &
+	# hopefully our child shell will inherit sudo password entered before
+	$(sleep 2; sudo chown ${USER}: $spice_path; $spice_cmd) &
 }
 
 set_profile_vars() {
@@ -286,6 +286,7 @@ spice)
 	dir=$1
 	set_vm_vars $dir
 	vm_conf_load
+	trace sudo date # get sudo password before spice socket chown in spice_client_start()
 	spice_client_start
 	;;
 user)
