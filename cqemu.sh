@@ -85,21 +85,21 @@ set_profile_vars() {
 	LINUX_DEFAULTS="qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G"
 	case $profile in
 	linux-desk)
-		cmd="sudo $LINUX_DEFAULTS -device intel-hda -device hda-duplex -drive file=$vm_path/disk.img,if=virtio,format=raw"
+		cmd="sudo $LINUX_DEFAULTS -device intel-hda -device hda-duplex -drive file=VM_DIR/disk.img,if=virtio,format=raw"
 		display="display-virtio-spice" # gl acceleration with spice integration, good linux support
 		;;
 	linux-serv)
-		cmd="sudo $LINUX_DEFAULTS -drive file=$vm_path/disk.img,format=raw"
+		cmd="sudo $LINUX_DEFAULTS -drive file=VM_DIR/disk.img,format=raw"
 		display="display-sdl"
 		;;
 	raspi3)
-		kernel="$vm_path/kernel.img"
+		kernel="VM_DIR/kernel.img"
 		[ -z "$viewonly" -a ! -e $kernel ] && err "profile raspi3: kernel image '$kernel' does not exist"
 		cmd="sudo qemu-system-aarch64 -M raspi3 -kernel $kernel"
 		display="display-sdl"
 		;;
 	windows)
-		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=$vm_path/disk.img,format=raw"
+		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=VM_DIR/disk.img,format=raw"
 		display="display-qxl-spice" # not accelerated but windows does not have virtio-vga drivers
 		;;
 	*)
