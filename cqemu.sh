@@ -22,6 +22,7 @@ usageexit() {
 	   $NETWORK_MODES
 	fsshare_mode
 	   $FSSHARE_MODES
+	   (use "share /home/myuser/share virtiofs rw,user 0 0" in guest fstab)
 	display_mode
 	   $DISPLAY_MODES
 	environnment variables
