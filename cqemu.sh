@@ -146,7 +146,7 @@ set_qemu_fsshare() {
 		fsshare:*)
 			IFS=':' read -r _ dir <<< "$fsshare"
 			dir=$(substitute_vars "$dir")
-			sock="$vm_path/fsshare.sock"
+			sock="${vm_path}/fsshare.sock"
 			qemu_fsshare="-object memory-backend-memfd,id=mem,size=VM_MEMORY,share=on -numa node,memdev=mem -chardev socket,id=char0,path=$sock -device vhost-user-fs-pci,chardev=char0,tag=share"
 			[ ! -z "$viewonly" ] && return
 			[ ! -e $VIRTIOFSD_PATH ] && err "virtiofsd not found, VIRTIOFSD_PATH=$VIRTIOFSD_PATH does not exist"
