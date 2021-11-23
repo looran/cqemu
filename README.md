@@ -27,7 +27,7 @@ display_mode
    display-none display-curses display-sdl display-virtio display-qxl-spice display-virtio-spice
 environnment variables
    QEMU_RUNAS=nobody
-   SPICE_CLIENT=spicy
+   SPICE_CLIENT=remote-viewer
    VIRTIOFSD_PATH=/usr/libexec/virtiofsd
 examples
    cqemu new vm_windows windows 20G net-user
@@ -78,7 +78,7 @@ display-virtio-spice: -vga virtio -spice disable-ticketing,image-compression=off
 * qemu of course
 * if x86 profiles are used: KVM enabled in kernel
 * if fsshare:<path> option is used: virtiofs enabled in qemu
-* if display-qxl-spice or display-virtio-spice options are used: spicy (spice-gtk package), the spice client used by default
+* if display-qxl-spice or display-virtio-spice options are used: remote-viewer (virt-viewer package), the spice client used by default
 
 ### Installation
 
