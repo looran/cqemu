@@ -26,6 +26,7 @@ usageexit() {
 	display_mode
 	   $DISPLAY_MODES
 	environnment variables
+	   QEMU_CHROOT=$QEMU_CHROOT
 	   QEMU_RUNAS=$QEMU_RUNAS
 	   SPICE_CLIENT=$SPICE_CLIENT
 	   VIRTIOFSD_PATH=$VIRTIOFSD_PATH
@@ -106,7 +107,12 @@ set_profile_vars() {
 		err "invalid profile: $profile'. choices: $PROFILES"
 		;;
 	esac
-	cmd="$cmd -chroot /var/empty -runas $QEMU_RUNAS -sandbox on,obsolete=deny,spawn=deny,resourcecontrol=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
+	if [ ! $QEMU_CHROOT/etc/resolv.conf ]; then
+		echo "creating chroot $QEMU_CHROOT/etc/resolv.conf in case qemu user networking is used"
+		trace mkdir -p $QEMU_CHROOT/etc/
+		trace cp /etc/resolv.conf $QEMU_CHROOT/etc/resolv.conf
+	fi
+	cmd="$cmd -chroot $QEMU_CHROOT -runas $QEMU_RUNAS -sandbox on,obsolete=deny,spawn=deny,resourcecontrol=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
 	profile_qemu_cmd="$cmd"
 	profile_display_mode="$display"
 }
@@ -185,6 +191,7 @@ set_qemu_display() {
 }
 
 PROG=$(basename $0)
+QEMU_CHROOT="${QEMU_CHROOT:-/var/empty}"
 QEMU_RUNAS=${QEMU_RUNAS:-nobody}
 SPICE_CLIENT="${SPICE_CLIENT:-remote-viewer}"
 VIRTIOFSD_PATH="${VIRTIOFSD_PATH:-/usr/libexec/virtiofsd}"
