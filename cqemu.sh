@@ -74,7 +74,7 @@ substitute_vars() {
 
 spice_client_start() {
 	spice_path="${vm_path}/spice.sock"
-	spice_cmd="$SPICE_CLIENT spice+unix://$spice_path"
+	spice_cmd="$SPICE_CLIENT -t cqemu-$vm_name spice+unix://$spice_path"
 	echo "delaying spice client : $spice_cmd"
 	# hopefully our child shell will inherit sudo password entered before
 	$(sleep 2; sudo chown ${USER}: $spice_path; $spice_cmd) &
