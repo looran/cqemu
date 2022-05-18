@@ -23,9 +23,11 @@ network_mode
    net-none net-user[:<user_options>] net-tap[:<ip>/<mask>]
 fsshare_mode
    fsshare-none fsshare:<path>
+   (use "share /home/myuser/share virtiofs rw,user 0 0" in guest fstab)
 display_mode
-   display-none display-curses display-sdl display-virtio display-qxl-spice display-virtio-spice
+   display-none display-curses display-sdl display-virtio display-qxl-spice[:n] display-virtio-spice[:n]
 environnment variables
+   QEMU_CHROOT=/var/empty
    QEMU_RUNAS=nobody
    SPICE_CLIENT=remote-viewer
    VIRTIOFSD_PATH=/usr/libexec/virtiofsd
@@ -46,16 +48,16 @@ user actions example
 $ cqemu show-profiles
 --- profiles ---
 linux-desk
-   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -device intel-hda -device hda-duplex -drive file=VM_PATH/disk.img,if=virtio,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
+   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -device intel-hda -device hda-duplex -drive file=VM_DIR/disk.img,if=virtio,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny,resourcecontrol=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-virtio-spice
 linux-serv
-   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=VM_PATH/disk.img,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
+   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=VM_DIR/disk.img,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny,resourcecontrol=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-sdl
 raspi3
-   sudo qemu-system-aarch64 -M raspi3 -kernel VM_PATH/kernel.img -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
+   sudo qemu-system-aarch64 -M raspi3 -kernel VM_DIR/kernel.img -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny,resourcecontrol=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-sdl
 windows
-   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=VM_PATH/disk.img,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny
+   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=VM_DIR/disk.img,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,spawn=deny,resourcecontrol=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-qxl-spice
 --- network modes ---
 net-none: -netdev user,id=net0 -nic none
@@ -69,8 +71,8 @@ display-none: -display none
 display-curses: -display curses
 display-sdl: 
 display-virtio: -vga virtio -display gtk,gl=on
-display-qxl-spice: -vga none -device qxl-vga,max_outputs=1,vgamem_mb=256,vram_size_mb=256 -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=VM_PATH/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent
-display-virtio-spice: -vga virtio -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=VM_PATH/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent
+display-qxl-spice[:n]: -vga qxl -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=VM_PATH/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent
+display-virtio-spice[:n]: -vga virtio -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=VM_PATH/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent
 ```
 
 ### Dependencies and requirements
