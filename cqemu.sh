@@ -30,13 +30,14 @@ usageexit() {
 	   QEMU_RUNAS=$QEMU_RUNAS
 	   SPICE_CLIENT=$SPICE_CLIENT
 	   VIRTIOFSD_PATH=$VIRTIOFSD_PATH
+
 	examples
 	   $PROG new vm_windows windows 20G net-user
 	   $PROG new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
 	   $PROG start vm_windows
 	   echo system_powerdown |$PROG mon vm_windows -q0
 	   $PROG start vm_windows net-none -cdrom /data/mycd.iso
-	user actions example
+	user actions examples
 	   echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
 	   $PROG user vm_linux onstart-iptables
 	_EOF

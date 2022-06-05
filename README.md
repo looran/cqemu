@@ -31,13 +31,14 @@ environnment variables
    QEMU_RUNAS=nobody
    SPICE_CLIENT=remote-viewer
    VIRTIOFSD_PATH=/usr/libexec/virtiofsd
+
 examples
    cqemu new vm_windows windows 20G net-user
    cqemu new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
    cqemu start vm_windows
    echo system_powerdown |cqemu mon vm_windows -q0
    cqemu start vm_windows net-none -cdrom /data/mycd.iso
-user actions example
+user actions examples
    echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
    cqemu user vm_linux onstart-iptables
 ```
