@@ -34,15 +34,20 @@ usageexit() {
 	   VIRTIOFSD_PATH=$VIRTIOFSD_PATH
 
 	examples
+	   # create VMs with different profiles and settings
 	   $PROG new vm_windows windows 20G net-user
 	   $PROG new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
+	   # start and powerdown VM
 	   $PROG start vm_windows
 	   echo system_powerdown |$PROG mon vm_windows -q0
+	   # start VM with disabled network and extra qemu options
 	   $PROG start vm_windows net-none -cdrom /data/mycd.iso
+	   # start VM with 2 monitors and VNC enabled
 	   $PROG start vm_windows display-qxl-spice:2:vnc
+	   # connect from a remote host to a VM
 	   $PROG spice 10.1.2.3:vm_windows
 	   $PROG vnc 10.1.2.3:vm_windows
-	user actions examples
+	examples of user actions
 	   echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
 	   $PROG user vm_linux onstart-iptables
 	_EOF
