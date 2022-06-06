@@ -28,7 +28,8 @@ $($D/cqemu.sh show-profiles |sed s/qemu.sh/qemu/)
 * qemu of course
 * if x86 profiles are used: KVM enabled in kernel
 * if fsshare:<path> option is used: virtiofs enabled in qemu
-* if display-qxl-spice or display-virtio-spice options are used: remote-viewer (virt-viewer package), the spice client used by default
+* if display-qxl-spice or display-virtio-spice options are used: remote-viewer (virt-viewer package) is the spice client used by default
+* if vnc mode is used: vncviewer (tigervnc package) is the vnc client used by default
 
 ### Installation
 
