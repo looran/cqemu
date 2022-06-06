@@ -171,7 +171,7 @@ set_qemu_display() {
 	case $display_mode in
 		display-none) qemu_display="-display none" ;;
 		display-curses) qemu_display="-display curses" ;;
-		display-sdl) qemu_display="" ;;
+		display-sdl) qemu_display="-display sdl" ;;
 		display-virtio) qemu_display="-vga virtio -display gtk,gl=on" ;;
 		display-qxl-spice*)
 			display_device="qxl"
