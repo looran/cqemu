@@ -79,8 +79,7 @@ spice_client_start() {
 	spice_path="${vm_path}/spice.sock"
 	spice_cmd="$SPICE_CLIENT -t cqemu-$vm_name spice+unix://$spice_path"
 	echo "delaying spice client : $spice_cmd"
-	[ ! -w $spice_path ] && trace sudo chown ${USER}: $spice_path
-	$(sleep $delay; [ ! -w $spice_path ] && trace sudo chown ${USER}: $spice_path; trace $spice_cmd) &
+	$(sleep $delay; trace $spice_cmd) &
 }
 
 set_profile_vars() {
@@ -189,7 +188,7 @@ set_qemu_display() {
 					qemu_display="$qemu_display -device $display_device";
 				done
 			fi
-			spice_client_start 2
+			spice_client_start 3
 			;;
 		*) err "invalid display mode: $display_mode. choices: $DISPLAY_MODES" ;;
 	esac
@@ -282,6 +281,7 @@ start)
 		trace sudo mkdir -p $QEMU_CHROOT/etc/
 		trace sudo cp /etc/resolv.conf $QEMU_CHROOT/etc/resolv.conf
 	fi
+	$(sleep 2; ls ${vm_path}/*.sock 2>/dev/null |grep -q '.*' && trace sudo chown ${USER}: ${vm_path}/*.sock) & # delay set socket permissions after qemu startup
 	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_user_opts
 	;;
 show)
