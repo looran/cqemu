@@ -169,7 +169,6 @@ set_qemu_fsshare() {
 
 set_qemu_display() {
 	display_mode=$(echo $1 |cut -d: -f1)
-	display_count=$(echo $1 |cut -d: -f2 -s)
 	viewonly=$2
 	case $display_mode in
 		display-none) qemu_display="-display none" ;;
@@ -177,24 +176,24 @@ set_qemu_display() {
 		display-sdl) qemu_display="" ;;
 		display-virtio) qemu_display="-vga virtio -display gtk,gl=on" ;;
 		display-qxl-spice*)
-			qemu_display="-vga qxl -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=${vm_path}/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
-			extra_device="qxl"
-			[ ! -z "$viewonly" ] && return
-			spice_client_start
-			;;
+			display_device="qxl"
+			;;&
 		display-virtio-spice*)
-			qemu_display="-vga virtio -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=${vm_path}/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
-			extra_device="virtio"
+			display_device="virtio"
+			;;&
+		display*spice*)
+			qemu_display="-vga $display_device -spice disable-ticketing=on,seamless-migration=on,unix=on,addr=${vm_path}/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
 			[ ! -z "$viewonly" ] && return
+			display_count=$(echo $1 |cut -d: -f2 -s)
+			if [ ! -z "$display_count" ]; then
+				for d in $(seq 2 $display_count); do
+					qemu_display="$qemu_display -device $display_device";
+				done
+			fi
 			spice_client_start 2
 			;;
 		*) err "invalid display mode: $display_mode. choices: $DISPLAY_MODES" ;;
 	esac
-	if [ ! -z "$display_count" -a ! -z "$extra_device" ]; then
-		for d in $(seq 2 $display_count); do
-			qemu_display="$qemu_display -device $extra_device";
-		done
-	fi
 	[[ "$display_mode" != *spice* && $conf_qemu_cmd_base == *spawn=deny* ]] \
 		&& echo "WARNING: removing sandbox 'spawn-deny' to allow for display $display_mode" \
 		&& conf_qemu_cmd_base="$(echo $conf_qemu_cmd_base |sed 's/,spawn=deny//')" \
