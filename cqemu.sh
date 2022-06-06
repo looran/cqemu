@@ -45,7 +45,7 @@ usageexit() {
 	exit 1
 }
 PROFILES="linux-desk linux-serv raspi3 windows"
-NETWORK_MODES="net-none net-user[:<user_options>] net-tap[:<ip>/<mask>"]
+NETWORK_MODES="net-none net-user[:<user_options>] net-tap[:<ip>/<mask>]"
 FSSHARE_MODES="fsshare-none fsshare:<path>"
 DISPLAY_MODES="display-none display-curses display-sdl display-virtio display-qxl-spice[:n] display-virtio-spice[:n]"
 
