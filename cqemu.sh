@@ -74,11 +74,12 @@ substitute_vars() {
 }
 
 spice_client_start() {
+	[ -z "$1" ] && delay=0 || delay=$1
 	spice_path="${vm_path}/spice.sock"
 	spice_cmd="$SPICE_CLIENT -t cqemu-$vm_name spice+unix://$spice_path"
 	echo "delaying spice client : $spice_cmd"
-	# hopefully our child shell will inherit sudo password entered before
-	$(sleep 2; sudo chown ${USER}: $spice_path; $spice_cmd) &
+	[ ! -w $spice_path ] && trace sudo chown ${USER}: $spice_path
+	$(sleep $delay; [ ! -w $spice_path ] && trace sudo chown ${USER}: $spice_path; trace $spice_cmd) &
 }
 
 set_profile_vars() {
@@ -187,7 +188,7 @@ set_qemu_display() {
 			qemu_display="-vga virtio -spice disable-ticketing,image-compression=off,seamless-migration=on,unix,addr=${vm_path}/spice.sock -device virtio-serial-pci -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent"
 			extra_device="virtio"
 			[ ! -z "$viewonly" ] && return
-			spice_client_start
+			spice_client_start 2
 			;;
 		*) err "invalid display mode: $display_mode. choices: $DISPLAY_MODES" ;;
 	esac
