@@ -112,11 +112,6 @@ set_profile_vars() {
 		err "invalid profile: $profile'. choices: $PROFILES"
 		;;
 	esac
-	if [ ! $QEMU_CHROOT/etc/resolv.conf ]; then
-		echo "creating chroot $QEMU_CHROOT/etc/resolv.conf in case qemu user networking is used"
-		trace mkdir -p $QEMU_CHROOT/etc/
-		trace cp /etc/resolv.conf $QEMU_CHROOT/etc/resolv.conf
-	fi
 	cmd="$cmd -chroot $QEMU_CHROOT -runas $QEMU_RUNAS -sandbox on,obsolete=deny,resourcecontrol=deny$sandbox_extra -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
 	profile_qemu_cmd="$cmd"
 	profile_display_mode="$display"
@@ -284,6 +279,11 @@ start)
 				|| trace $conf_pre /bin/sh -c "$cmd"
 		fi
 	done <<< "$conf_user_actions"
+	if [ ! $QEMU_CHROOT/etc/resolv.conf ]; then
+		echo "creating chroot $QEMU_CHROOT/etc/resolv.conf in case qemu user networking is used"
+		trace sudo mkdir -p $QEMU_CHROOT/etc/
+		trace sudo cp /etc/resolv.conf $QEMU_CHROOT/etc/resolv.conf
+	fi
 	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_user_opts
 	;;
 show)
