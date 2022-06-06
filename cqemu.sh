@@ -13,7 +13,7 @@ usageexit() {
 	   start <vm_dir> [<network_mode>] [<fsshare_mode>] [<display_mode>] [qemu-options...]
 	   show <vm_dir>
 	   mon <vm_dir> [<netcat_options>]
-	   spice <vm_dir>
+	   spice <vm_dir> | <remote_ssh_host>:<vm_dir>
 	   user <vm_dir> <user-action> [<user-args...>]
 	   show-profiles
 	profiles
@@ -37,6 +37,7 @@ usageexit() {
 	   $PROG start vm_windows
 	   echo system_powerdown |$PROG mon vm_windows -q0
 	   $PROG start vm_windows net-none -cdrom /data/mycd.iso
+	   $PROG spice 10.1.2.3:vm_linux
 	user actions examples
 	   echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
 	   $PROG user vm_linux onstart-iptables
@@ -306,10 +307,23 @@ mon)
 	;;
 spice)
 	[ $# -ne 1 ] && usageexit
-	dir=$1
-	set_vm_vars $dir
-	vm_conf_load
-	trace sudo date # get sudo password before spice socket chown in spice_client_start()
+	if [[ "$1" == *:* ]]; then
+		remote=$(echo $1 |cut -d: -f1)
+		path="$(echo $1 |cut -d: -f2)"
+		[ "$(basename $path)" != "spice.sock" ] \
+			&& path="$path/spice.sock"
+		[ $(echo $path |cut -c1) != "/" ] \
+			&& path="$HOME/$path" # works only if remote user home == local user home
+		trace rm -f /tmp/spice.sock
+		trace ssh -L /tmp/spice.sock:"$path" $remote -fNT
+		vm_path="/tmp"
+		vm_name="$remote:$(basename $(dirname $path))"
+	else
+		dir=$1
+		shift
+		set_vm_vars $dir
+		vm_conf_load
+	fi
 	spice_client_start
 	;;
 user)
