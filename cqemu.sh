@@ -6,7 +6,7 @@
 
 usageexit() {
 	cat <<-_EOF
-	usage: $PROG [-h] (new|start|show|mon|spice|user <vm-dir> [options]) | show-profiles
+	usage: $PROG [-h] (new|start|show|mon|spice|vnc|user <vm-dir> [options]) | show-profiles
 
 	actions
 	   new <vm_name> <profile_name> <disk_size> <network_mode> [<fsshare_mode>]
@@ -14,6 +14,7 @@ usageexit() {
 	   show <vm_dir>
 	   mon <vm_dir> [<netcat_options>]
 	   spice <vm_dir> | <remote_ssh_host>:<vm_dir>
+	   vnc [-low] <remote_ssh_host>:<vm_dir>
 	   user <vm_dir> <user-action> [<user-args...>]
 	   show-profiles
 	profiles
@@ -23,12 +24,13 @@ usageexit() {
 	fsshare_mode
 	   $FSSHARE_MODES
 	   (use "share /home/myuser/share virtiofs rw,user 0 0" in guest fstab)
-	display_mode
+	display_mode [:vnc]
 	   $DISPLAY_MODES
 	environnment variables
 	   QEMU_CHROOT=$QEMU_CHROOT
 	   QEMU_RUNAS=$QEMU_RUNAS
 	   SPICE_CLIENT=$SPICE_CLIENT
+	   VNC_CLIENT=$VNC_CLIENT
 	   VIRTIOFSD_PATH=$VIRTIOFSD_PATH
 
 	examples
@@ -37,7 +39,9 @@ usageexit() {
 	   $PROG start vm_windows
 	   echo system_powerdown |$PROG mon vm_windows -q0
 	   $PROG start vm_windows net-none -cdrom /data/mycd.iso
-	   $PROG spice 10.1.2.3:vm_linux
+	   $PROG start vm_windows display-qxl-spice:2:vnc
+	   $PROG spice 10.1.2.3:vm_windows
+	   $PROG vnc 10.1.2.3:vm_windows
 	user actions examples
 	   echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
 	   $PROG user vm_linux onstart-iptables
@@ -196,12 +200,17 @@ set_qemu_display() {
 		&& echo "NOTE: removing sandbox 'spawn=deny' to allow for display $display_mode" \
 		&& conf_qemu_cmd_base="$(echo $conf_qemu_cmd_base |sed 's/,spawn=deny//')" \
 		|| true
+	opt=$(echo $1 |cut -d: -f3 -s)
+	if [ "$opt" = "vnc" ]; then
+		qemu_display="$qemu_display -vnc unix:${vm_path}/vnc.sock"
+	fi
 }
 
 PROG=$(basename $0)
 QEMU_CHROOT="${QEMU_CHROOT:-/var/empty}"
 QEMU_RUNAS=${QEMU_RUNAS:-nobody}
 SPICE_CLIENT="${SPICE_CLIENT:-remote-viewer}"
+VNC_CLIENT="${VNC_CLIENT:-vncviewer}"
 VIRTIOFSD_PATH="${VIRTIOFSD_PATH:-/usr/libexec/virtiofsd}"
 USER=$(whoami)
 
@@ -323,6 +332,22 @@ spice)
 		vm_conf_load
 	fi
 	spice_client_start
+	;;
+vnc)
+	[ $# -lt 1 ] && usageexit
+	client_opts=""
+	[ $1 = "-low" ] \
+		&& client_opts="-LowColorLevel=1 -FullColor=0 -AutoSelect=0" \
+		&& shift
+	remote=$(echo $1 |cut -d: -f1)
+	path="$(echo $1 |cut -d: -f2)"
+	[ "$(basename $path)" != "vnc.sock" ] \
+		&& path="$path/vnc.sock"
+	[ $(echo $path |cut -c1) != "/" ] \
+		&& path="$HOME/$path" # works only if remote user home == local user home
+	trace rm -f /tmp/vnc.sock
+	trace ssh -L /tmp/vnc.sock:"$path" $remote -fNT
+	trace $VNC_CLIENT $client_opts /tmp/vnc.sock
 	;;
 user)
 	[ $# -eq 0 ] && usageexit
