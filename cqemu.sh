@@ -87,12 +87,10 @@ set_profile_vars() {
 	profile="$1"
 	viewonly="$2"
 	LINUX_DEFAULTS="qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G"
-	sandbox_extra=""
 	case $profile in
 	linux-desk)
 		cmd="sudo $LINUX_DEFAULTS -device intel-hda -device hda-duplex -drive file=VM_DIR/disk.img,if=virtio,format=raw"
 		display="display-virtio-spice" # gl acceleration with spice integration, good linux support
-		sandbox_extra=",spawn=deny"
 		;;
 	linux-serv)
 		cmd="sudo $LINUX_DEFAULTS -drive file=VM_DIR/disk.img,format=raw"
@@ -107,13 +105,12 @@ set_profile_vars() {
 	windows)
 		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=VM_DIR/disk.img,format=raw"
 		display="display-qxl-spice" # not accelerated but windows does not have virtio-vga drivers
-		sandbox_extra=",spawn=deny"
 		;;
 	*)
 		err "invalid profile: $profile'. choices: $PROFILES"
 		;;
 	esac
-	cmd="$cmd -chroot $QEMU_CHROOT -runas $QEMU_RUNAS -sandbox on,obsolete=deny,resourcecontrol=deny$sandbox_extra -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
+	cmd="$cmd -chroot $QEMU_CHROOT -runas $QEMU_RUNAS -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
 	profile_qemu_cmd="$cmd"
 	profile_display_mode="$display"
 }
@@ -196,7 +193,7 @@ set_qemu_display() {
 		*) err "invalid display mode: $display_mode. choices: $DISPLAY_MODES" ;;
 	esac
 	[[ "$display_mode" != *spice* && $conf_qemu_cmd_base == *spawn=deny* ]] \
-		&& echo "WARNING: removing sandbox 'spawn-deny' to allow for display $display_mode" \
+		&& echo "NOTE: removing sandbox 'spawn=deny' to allow for display $display_mode" \
 		&& conf_qemu_cmd_base="$(echo $conf_qemu_cmd_base |sed 's/,spawn=deny//')" \
 		|| true
 }
