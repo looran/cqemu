@@ -302,10 +302,14 @@ show)
 	[ $# -lt 1 ] && usageexit
 	dir=$1
 	set_vm_vars $dir
-	echo "configuration for VM '$vm_name':"
+	#echo "configuration for VM '$vm_name':"
 	[ ! -e $vm_path/conf ] && err "VM configuration not found in $vm_path/conf"
-	trace cat $vm_path/conf
+	echo --------------------------------------------------------------------------------
+	echo $vm_path/conf
+	cat $vm_path/conf
+	echo --------------------------------------------------------------------------------
 	trace qemu-img info $vm_path/disk.img
+	echo --------------------------------------------------------------------------------
 	echo "VM monitor port : 127.0.0.1:$vm_monitor_port"
 	echo "VM ssh port     : 127.0.0.1:$vm_ssh_port_host"
 	;;
