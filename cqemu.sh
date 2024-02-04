@@ -309,8 +309,18 @@ start)
 		trace sudo mkdir -p $QEMU_CHROOT/etc/
 		trace sudo cp /etc/resolv.conf $QEMU_CHROOT/etc/resolv.conf
 	fi
-	$(sleep 2; ls ${vm_path}/*.sock 2>/dev/null |grep -q '.*' && trace sudo chown ${USER}: ${vm_path}/*.sock) & # delay set socket permissions after qemu startup
+	$(sleep 2; ls ${vm_path}/*.sock 2>/dev/null |grep -q '.*' && trace sudo chown ${USER} ${vm_path}/*.sock) & # delay set socket permissions after qemu startup
 	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_user_opts
+	while read -r line; do
+		IFS=':' read -r action_name action_cmd <<< "$line"
+		if [[ $action_name == onstop* ]]; then
+			echo "executing onstop action $action_name"
+			cmd=$(substitute_vars "$action_cmd")
+			[[ $action_name == onstop-nopre* ]] \
+				&& trace /bin/sh -c "$cmd" \
+				|| trace $conf_pre /bin/sh -c "$cmd"
+		fi
+	done <<< "$conf_user_actions"
 	;;
 show)
 	[ $# -lt 1 ] && usageexit
