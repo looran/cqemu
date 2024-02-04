@@ -297,7 +297,7 @@ start)
 	while read -r line; do
 		IFS=':' read -r action_name action_cmd <<< "$line"
 		if [[ $action_name == onstart* ]]; then
-			echo "starting onstart action $action_name"
+			echo "executing onstart action $action_name"
 			cmd=$(substitute_vars "$action_cmd")
 			[[ $action_name == onstart-nopre* ]] \
 				&& trace /bin/sh -c "$cmd" \
