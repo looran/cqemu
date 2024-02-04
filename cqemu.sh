@@ -1,12 +1,16 @@
 #!/bin/bash
 
 # cqemu - simple qemu VM command-line manager
-# 2015 Laurent Ghigonis <ooookiwi@gmail.com> initial version
-# 2021 Laurent Ghigonis <ooookiwi@gmail.com> complete rewrite
+# 2015-2023 Laurent Ghigonis <ooookiwi@gmail.com>
+# 2015 initial version
+# 2021 complete rewrite
+
+VERSION=20230730
 
 usageexit() {
 	cat <<-_EOF
-	usage: $PROG [-h] (new|start|show|mon|spice|vnc|user <vm-dir> [options]) | show-profiles
+	usage: $PROG [-h] (new|start|show|mon|spice|vnc|user <vm-dir> [options]) | show-profiles | show-examples
+	v$VERSION
 
 	actions
 	   new <vm_name> <profile_name> <disk_size> <network_mode> [<fsshare_mode>]
@@ -17,6 +21,7 @@ usageexit() {
 	   vnc [-low] <remote_ssh_host>:<vm_dir>
 	   user <vm_dir> <user-action> [<user-args...>]
 	   show-profiles
+	   show-examples
 	profiles
 	   $PROFILES
 	network_mode
@@ -32,26 +37,33 @@ usageexit() {
 	   SPICE_CLIENT=$SPICE_CLIENT
 	   VNC_CLIENT=$VNC_CLIENT
 	   VIRTIOFSD_PATH=$VIRTIOFSD_PATH
-
-	examples
-	   # create VMs with different profiles and settings
-	   $PROG new vm_windows windows 20G net-user
-	   $PROG new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
-	   # start and powerdown VM
-	   $PROG start vm_windows
-	   echo system_powerdown |$PROG mon vm_windows -q0
-	   # start VM with disabled network and extra qemu options
-	   $PROG start vm_windows net-none -cdrom /data/mycd.iso
-	   # start VM with 2 monitors and VNC enabled
-	   $PROG start vm_windows display-qxl-spice:2:vnc
-	   # connect from a remote host to a VM
-	   $PROG spice 10.1.2.3:vm_windows
-	   $PROG vnc 10.1.2.3:vm_windows
-	examples of user actions
-	   echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
-	   $PROG user vm_linux onstart-iptables
-	_EOF
+_EOF
 	exit 1
+}
+
+showexamples() {
+	cat <<-_EOF
+example commands:
+
+# create VMs with different profiles and settings
+$PROG new vm_windows windows 20G net-user
+$PROG new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
+# start and powerdown VM
+$PROG start vm_windows
+echo system_powerdown |$PROG mon vm_windows -q0
+# start VM with disabled network and extra qemu options
+$PROG start vm_windows net-none -cdrom /data/mycd.iso
+# start VM with 2 monitors and VNC enabled
+$PROG start vm_windows display-qxl-spice:2:vnc
+# connect from a remote host to a VM
+$PROG spice 10.1.2.3:vm_windows
+$PROG vnc 10.1.2.3:vm_windows
+
+example of user actions:
+
+echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
+$PROG user vm_linux onstart-iptables
+	_EOF
 }
 PROFILES="linux-desk linux-serv raspi3 windows"
 NETWORK_MODES="net-none net-user[:<user_options>] net-tap[:<ip>/<mask>]"
@@ -272,6 +284,7 @@ start)
 		"") break ;;
 		*) err "invalid option: $@" ;;
 	esac done
+	echo v$VERSION
 	echo "pre command  : $conf_pre"
 	echo "network mode : $conf_net"
 	echo "fsshare mode : $conf_fsshare"
@@ -406,6 +419,9 @@ show-profiles)
 		set_qemu_display $d viewonly
 		echo "$d: $qemu_display"
 	done
+	;;
+show-examples)
+	showexamples
 	;;
 *)
 	usageexit
