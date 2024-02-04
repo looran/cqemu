@@ -149,16 +149,16 @@ set_qemu_net() {
 			qemu_net="-device virtio-net-pci,netdev=net0"
 			;;
 		net-tap*)
-			iface="tap-$vm_name"
+			vm_tap_iface="tap-${vm_name:0:11}"
 			IFS=':' read -r _ ip <<< "$net"
-			qemu_netdev="tap,id=net0,ifname=$iface,script=no,downscript=no"
+			qemu_netdev="tap,id=net0,ifname=$vm_tap_iface,script=no,downscript=no"
 			qemu_net="-device virtio-net-pci,netdev=net0"
 			[ ! -z "$viewonly" ] && return
-			$conf_pre ip a s dev $iface >/dev/null 2>&1 || \
-				trace $conf_pre sudo ip tuntap add user $USER mode tap name $iface
-			trace $conf_pre sudo ip a f dev $iface
-			[ ! -z "$ip" ] && trace $conf_pre sudo ip a a $ip dev $iface
-			trace $conf_pre sudo ip link set $iface up promisc on
+			$conf_pre ip a s dev $vm_tap_iface >/dev/null 2>&1 || \
+				trace $conf_pre sudo ip tuntap add user $USER mode tap name $vm_tap_iface
+			trace $conf_pre sudo ip a f dev $vm_tap_iface
+			[ ! -z "$ip" ] && trace $conf_pre sudo ip a a $ip dev $vm_tap_iface
+			trace $conf_pre sudo ip link set $vm_tap_iface up promisc on
 			;;
 		*) err "invalid network mode: $net. choices: $NETWORK_MODES" ;;
 	esac
