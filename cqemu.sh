@@ -90,6 +90,7 @@ vm_conf_load() {
 substitute_vars() {
 	cmd="$1"
 	cmd="$(echo "$cmd" |sed s:VM_NAME:${vm_name}:g)"
+	cmd="$(echo "$cmd" |sed s:VM_TAP_IFACE:${vm_tap_iface}:g)"
 	cmd="$(echo "$cmd" |sed s:VM_DIR:${vm_path}:g)"
 	cmd="$(echo "$cmd" |sed s/VM_SSH_PORT_HOST/$vm_ssh_port_host/g)"
 	echo "$cmd"
