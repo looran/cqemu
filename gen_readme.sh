@@ -16,6 +16,13 @@ $ cqemu
 $($D/cqemu.sh |sed s/qemu.sh/qemu/)
 \`\`\`
 
+### Examples
+
+\`\`\`bash
+$ cqemu
+$($D/cqemu.sh show-examples |sed s/qemu.sh/qemu/)
+\`\`\`
+
 #### Profiles and modes
 
 \`\`\`bash
