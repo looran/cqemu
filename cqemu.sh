@@ -107,7 +107,7 @@ spice_client_start() {
 set_profile_vars() {
 	profile="$1"
 	viewonly="$2"
-	LINUX_DEFAULTS="qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G"
+	LINUX_DEFAULTS="qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G"
 	case $profile in
 	linux-desk)
 		cmd="sudo $LINUX_DEFAULTS -device intel-hda -device hda-duplex -drive file=VM_DIR/disk.img,if=virtio,format=raw"
@@ -124,7 +124,7 @@ set_profile_vars() {
 		display="display-sdl"
 		;;
 	windows)
-		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=2 -m 3G -drive file=VM_DIR/disk.img,format=raw"
+		cmd="sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G -drive file=VM_DIR/disk.img,format=raw"
 		display="display-qxl-spice" # not accelerated but windows does not have virtio-vga drivers
 		;;
 	*)
