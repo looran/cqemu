@@ -132,7 +132,7 @@ set_profile_vars() {
 		;;
 	esac
 	# note: if using GL, we should remove resourcecontrol=deny to allow mesa pthread optimisations
-	cmd="$cmd -chroot $QEMU_CHROOT -runas $QEMU_RUNAS -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
+	cmd="$cmd -run-with chroot=$QEMU_CHROOT -runas $QEMU_RUNAS -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
 	profile_qemu_cmd="$cmd"
 	profile_display_mode="$display"
 }
