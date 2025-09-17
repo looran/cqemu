@@ -9,34 +9,34 @@ VERSION=20230730
 
 usageexit() {
 	cat <<-_EOF
-	usage: $PROG [-h] (new|start|show|mon|spice|vnc|user <vm-dir> [options]) | show-profiles | show-examples
-	v$VERSION
+usage: $PROG [-h] (new|start|show|mon|spice|vnc|user <vm-dir> [options]) | show-profiles | show-examples
+v$VERSION
 
-	actions
-	   new <vm_name> <profile_name> <disk_size> <network_mode> [<fsshare_mode>]
-	   start <vm_dir> [<network_mode>] [<fsshare_mode>] [<display_mode>] [qemu-options...]
-	   show <vm_dir>
-	   mon <vm_dir> [<netcat_options>]
-	   spice <vm_dir> | <remote_ssh_host>:<vm_dir>
-	   vnc [-low] <remote_ssh_host>:<vm_dir>
-	   user <vm_dir> <user-action> [<user-args...>]
-	   show-profiles
-	   show-examples
-	profiles
-	   $PROFILES
-	network_mode
-	   $NETWORK_MODES
-	fsshare_mode
-	   $FSSHARE_MODES
-	   (use "share /home/myuser/share virtiofs rw,user 0 0" in guest fstab)
-	display_mode [:vnc]
-	   $DISPLAY_MODES
-	environnment variables
-	   QEMU_CHROOT=$QEMU_CHROOT
-	   QEMU_RUNAS=$QEMU_RUNAS
-	   SPICE_CLIENT=$SPICE_CLIENT
-	   VNC_CLIENT=$VNC_CLIENT
-	   VIRTIOFSD_PATH=$VIRTIOFSD_PATH
+--- actions ---
+new <vm_name> <profile_name> <disk_size> <network_mode> [<fsshare_mode>]
+start <vm_dir> [<network_mode>] [<fsshare_mode>] [<display_mode>] [qemu-options...]
+show <vm_dir>
+mon <vm_dir> [<netcat_options>]
+spice <vm_dir> | <remote_ssh_host>:<vm_dir>
+vnc [-low] <remote_ssh_host>:<vm_dir>
+user <vm_dir> <user-action> [<user-args...>]
+show-profiles
+show-examples
+--- profiles ---
+$PROFILES
+--- network_mode ---
+$NETWORK_MODES
+--- fsshare_mode ---
+$FSSHARE_MODES
+(use "share /home/myuser/share virtiofs rw,user 0 0" in guest fstab)
+--- display_mode [:vnc] ---
+$DISPLAY_MODES
+--- environnment variables ---
+QEMU_CHROOT=$QEMU_CHROOT
+QEMU_USER=$QEMU_USER
+SPICE_CLIENT=$SPICE_CLIENT
+VNC_CLIENT=$VNC_CLIENT
+VIRTIOFSD_PATH=$VIRTIOFSD_PATH
 _EOF
 	exit 1
 }
