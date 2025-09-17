@@ -5,7 +5,7 @@
 # 2015 initial version
 # 2021 complete rewrite
 
-VERSION=20230730
+VERSION=20250917
 
 usageexit() {
 	cat <<-_EOF
