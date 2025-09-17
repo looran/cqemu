@@ -131,7 +131,7 @@ set_profile_vars() {
 		;;
 	esac
 	# note: if using GL, we should remove resourcecontrol=deny to allow mesa pthread optimisations
-	cmd="$cmd -run-with chroot=$QEMU_CHROOT -runas $QEMU_RUNAS -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
+	cmd="$cmd -run-with chroot=$QEMU_CHROOT -run-with user=$QEMU_USER -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:$vm_monitor_port,server,nowait"
 	profile_qemu_cmd="$cmd"
 	profile_display_mode="$display"
 }
@@ -225,7 +225,7 @@ set_qemu_display() {
 
 PROG=$(basename $0)
 QEMU_CHROOT="${QEMU_CHROOT:-/var/empty}"
-QEMU_RUNAS=${QEMU_RUNAS:-nobody}
+QEMU_USER=${QEMU_USER:-nobody}
 SPICE_CLIENT="${SPICE_CLIENT:-remote-viewer}"
 VNC_CLIENT="${VNC_CLIENT:-vncviewer}"
 VIRTIOFSD_PATH="${VIRTIOFSD_PATH:-/usr/libexec/virtiofsd}"
