@@ -44,7 +44,6 @@ _EOF
 showexamples() {
 	cat <<-_EOF
 example commands:
-
 # create VMs with different profiles and settings
 $PROG new vm_windows windows 20G net-user
 $PROG new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
@@ -60,11 +59,11 @@ $PROG spice 10.1.2.3:vm_windows
 $PROG vnc 10.1.2.3:vm_windows
 
 example of user actions:
-
 echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
 $PROG user vm_linux onstart-iptables
-	_EOF
+_EOF
 }
+
 PROFILES="linux-desk linux-serv raspi3 windows"
 NETWORK_MODES="net-none net-user[:<user_options>] net-tap[:<ip>/<mask>]"
 FSSHARE_MODES="fsshare-none fsshare:<path>"
