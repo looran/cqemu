@@ -8,41 +8,40 @@ simple qemu VM command-line manager
 ```bash
 $ cqemu
 usage: cqemu [-h] (new|start|show|mon|spice|vnc|user <vm-dir> [options]) | show-profiles | show-examples
-v20230730
+v20250917
 
-actions
-   new <vm_name> <profile_name> <disk_size> <network_mode> [<fsshare_mode>]
-   start <vm_dir> [<network_mode>] [<fsshare_mode>] [<display_mode>] [qemu-options...]
-   show <vm_dir>
-   mon <vm_dir> [<netcat_options>]
-   spice <vm_dir> | <remote_ssh_host>:<vm_dir>
-   vnc [-low] <remote_ssh_host>:<vm_dir>
-   user <vm_dir> <user-action> [<user-args...>]
-   show-profiles
-   show-examples
-profiles
-   linux-desk linux-serv raspi3 windows
-network_mode
-   net-none net-user[:<user_options>] net-tap[:<ip>/<mask>]
-fsshare_mode
-   fsshare-none fsshare:<path>
-   (use "share /home/myuser/share virtiofs rw,user 0 0" in guest fstab)
-display_mode [:vnc]
-   display-none display-curses display-sdl display-virtio display-qxl-spice[:n] display-virtio-spice[:n]
-environnment variables
-   QEMU_CHROOT=/var/empty
-   QEMU_RUNAS=nobody
-   SPICE_CLIENT=remote-viewer
-   VNC_CLIENT=vncviewer
-   VIRTIOFSD_PATH=/usr/libexec/virtiofsd
+--- actions ---
+new <vm_name> <profile_name> <disk_size> <network_mode> [<fsshare_mode>]
+start <vm_dir> [<network_mode>] [<fsshare_mode>] [<display_mode>] [qemu-options...]
+show <vm_dir>
+mon <vm_dir> [<netcat_options>]
+spice <vm_dir> | <remote_ssh_host>:<vm_dir>
+vnc [-low] <remote_ssh_host>:<vm_dir>
+user <vm_dir> <user-action> [<user-args...>]
+show-profiles
+show-examples
+--- profiles ---
+linux-desk linux-serv raspi3 windows
+--- network_mode ---
+net-none net-user[:<user_options>] net-tap[:<ip>/<mask>]
+--- fsshare_mode ---
+fsshare-none fsshare:<path>
+(use "share /home/myuser/share virtiofs rw,user 0 0" in guest fstab)
+--- display_mode [:vnc] ---
+display-none display-curses display-sdl display-virtio display-qxl-spice[:n] display-virtio-spice[:n]
+--- environnment variables ---
+QEMU_CHROOT=/var/empty
+QEMU_USER=nobody
+SPICE_CLIENT=remote-viewer
+VNC_CLIENT=vncviewer
+VIRTIOFSD_PATH=/usr/libexec/virtiofsd
 ```
 
 ### Examples
 
 ```bash
-$ cqemu
+$ cqemu show-examples
 example commands:
-
 # create VMs with different profiles and settings
 cqemu new vm_windows windows 20G net-user
 cqemu new vm_linux linux-desk 20G net-tap:192.168.0.1/24 fsshare:VM_DIR/share
@@ -58,7 +57,6 @@ cqemu spice 10.1.2.3:vm_windows
 cqemu vnc 10.1.2.3:vm_windows
 
 example of user actions:
-
 echo 'conf_user_actions="onstart-iptables: sudo iptables -D INPUT -i tap-vm_linux -d 192.168.0.1 -p tcp --dport 9999 -j ACCEPT"' >> vm_linux/conf"
 cqemu user vm_linux onstart-iptables
 ```
@@ -69,16 +67,16 @@ cqemu user vm_linux onstart-iptables
 $ cqemu show-profiles
 --- profiles ---
 linux-desk
-   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G -device intel-hda -device hda-duplex -drive file=VM_DIR/disk.img,if=virtio,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
+   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G -device intel-hda -device hda-duplex -drive file=VM_DIR/disk.img,if=virtio,format=raw -run-with chroot=/var/empty -run-with user=nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-virtio-spice
 linux-serv
-   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G -drive file=VM_DIR/disk.img,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
+   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G -drive file=VM_DIR/disk.img,format=raw -run-with chroot=/var/empty -run-with user=nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-sdl
 raspi3
-   sudo qemu-system-aarch64 -M raspi3 -kernel VM_DIR/kernel.img -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
+   sudo qemu-system-aarch64 -M raspi3 -kernel VM_DIR/kernel.img -run-with chroot=/var/empty -run-with user=nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-sdl
 windows
-   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G -drive file=VM_DIR/disk.img,format=raw -chroot /var/empty -runas nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
+   sudo qemu-system-x86_64 --enable-kvm -cpu host -smp cores=4 -m 3G -drive file=VM_DIR/disk.img,format=raw -run-with chroot=/var/empty -run-with user=nobody -sandbox on,obsolete=deny,resourcecontrol=deny,spawn=deny -monitor tcp:127.0.0.1:,server,nowait
    default display: display-qxl-spice
 --- network modes ---
 net-none: -netdev user,id=net0 -nic none

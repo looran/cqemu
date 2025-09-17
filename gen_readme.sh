@@ -19,7 +19,7 @@ $($D/cqemu.sh |sed s/qemu.sh/qemu/)
 ### Examples
 
 \`\`\`bash
-$ cqemu
+$ cqemu show-examples
 $($D/cqemu.sh show-examples |sed s/qemu.sh/qemu/)
 \`\`\`
 
