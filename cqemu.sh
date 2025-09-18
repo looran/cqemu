@@ -65,9 +65,9 @@ _EOF
 }
 
 PROFILES="linux-desk linux-serv raspi3 windows"
-NETWORK_MODES="net-none net-user[:<user_options>] net-tap[:<ip>/<mask>]"
+NETWORK_MODES="net-none net-empty net-user[:<user_options>] net-tap[:<ip>/<mask>]"
 FSSHARE_MODES="fsshare-none fsshare:<path>"
-DISPLAY_MODES="display-none display-curses display-sdl display-virtio display-qxl-spice[:n] display-virtio-spice[:n]"
+DISPLAY_MODES="display-none display-empty display-curses display-sdl display-virtio display-qxl-spice[:n] display-virtio-spice[:n]"
 
 err() { echo -e "$PROG error: $1" >&2; exit 1; }
 trace() { echo "# $*" >&2; "$@" ||exit 10; }
@@ -140,17 +140,18 @@ set_qemu_net() {
 	net=$1
 	viewonly=$2
 	case $net in
-		net-none) qemu_netdev="user,id=net0"; qemu_net="-nic none" ;;
+		net-none) qemu_netdev="-netdev user,id=net0"; qemu_net="-nic none" ;;
+		net-empty) qemu_netdev=""; qemu_net="" ;;
 		net-user*)
 			IFS=':' read -r _ options <<< "$net"
 			[ ! -z "$options" ] && options=,$(substitute_vars "$options")
-			qemu_netdev="user,id=net0,hostfwd=tcp:127.0.0.1:${vm_ssh_port_host}-:22${options}"
+			qemu_netdev="-netdev user,id=net0,hostfwd=tcp:127.0.0.1:${vm_ssh_port_host}-:22${options}"
 			qemu_net="-device virtio-net-pci,netdev=net0"
 			;;
 		net-tap*)
 			vm_tap_iface="tap-${vm_name:0:11}"
 			IFS=':' read -r _ ip <<< "$net"
-			qemu_netdev="tap,id=net0,ifname=$vm_tap_iface,script=no,downscript=no"
+			qemu_netdev="-netdev tap,id=net0,ifname=$vm_tap_iface,script=no,downscript=no"
 			qemu_net="-device virtio-net-pci,netdev=net0"
 			[ ! -z "$viewonly" ] && return
 			$conf_pre ip a s dev $vm_tap_iface >/dev/null 2>&1 || \
@@ -191,6 +192,7 @@ set_qemu_display() {
 	viewonly=$2
 	case $display_mode in
 		display-none) qemu_display="-display none" ;;
+		display-empty) qemu_display="" ;;
 		display-curses) qemu_display="-display curses" ;;
 		display-sdl) qemu_display="-display sdl" ;;
 		display-virtio) qemu_display="-vga virtio -display gtk,gl=on" ;;
@@ -213,7 +215,7 @@ set_qemu_display() {
 			;;
 		*) err "invalid display mode: $display_mode. choices: $DISPLAY_MODES" ;;
 	esac
-	[[ "$display_mode" != *spice* && $conf_qemu_cmd_base == *spawn=deny* ]] \
+	[[ "$display_mode" != *spice* && "$display_mode" != display-empty && "$display_mode" != display-none && $conf_qemu_cmd_base == *spawn=deny* ]] \
 		&& echo "NOTE: removing sandbox 'spawn=deny' to allow for display $display_mode" \
 		&& conf_qemu_cmd_base="$(echo $conf_qemu_cmd_base |sed 's/,spawn=deny//')" \
 		|| true
@@ -309,7 +311,7 @@ start)
 		trace sudo cp /etc/resolv.conf $QEMU_CHROOT/etc/resolv.conf
 	fi
 	$(sleep 2; ls ${vm_path}/*.sock 2>/dev/null |grep -q '.*' && trace sudo chown ${USER} ${vm_path}/*.sock) & # delay set socket permissions after qemu startup
-	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display -netdev "$qemu_netdev" $qemu_net $qemu_fsshare $qemu_user_opts
+	trace $conf_pre $(substitute_vars "$conf_qemu_cmd_base") $qemu_display $qemu_netdev $qemu_net $qemu_fsshare $qemu_user_opts
 	while read -r line; do
 		IFS=':' read -r action_name action_cmd <<< "$line"
 		if [[ $action_name == onstop* ]]; then
@@ -417,7 +419,7 @@ show-profiles)
 	for n in $NETWORK_MODES; do
 		n="$(echo $n |cut -d'[' -f1)"
 		set_qemu_net $n viewonly
-		echo "$n: -netdev $qemu_netdev $qemu_net"
+		echo "$n: $qemu_netdev $qemu_net"
 	done
 	echo "--- fsshare modes ---"
 	for f in $FSSHARE_MODES; do
